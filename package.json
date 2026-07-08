@@ -1,0 +1,66 @@
+{
+  "name": "rst-preview",
+  "displayName": "RST Preview",
+  "description": "Render reStructuredText files in a VS Code webview using docutils.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rstPreview.openPreview",
+        "title": "RST: Open Preview",
+        "category": "RST Preview",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "rstPreview.openPreview",
+          "when": "resourceExtname == .rst",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "rstPreview.openPreview",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus && resourceExtname == .rst"
+      }
+    ],
+    "configuration": {
+      "title": "RST Preview",
+      "properties": {
+        "rstPreview.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python executable used to run docutils."
+        },
+        "rstPreview.showWarnings": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show docutils/Sphinx build warnings above the rendered preview."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.8.3"
+  }
+}

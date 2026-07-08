@@ -1,0 +1,10 @@
+src/**
+tsconfig.json
+**/*.map
+.venv/**
+node_modules/**
+python/__pycache__/**
+.vscode/**
+.gitignore
+IDEA.md
+sample.rst
