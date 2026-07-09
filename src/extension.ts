@@ -267,6 +267,10 @@ function renderWithDocutils(
       cwd: path.dirname(sourcePath),
       env: {
         ...process.env,
+        // Keep the renderer's stdio UTF-8 regardless of OS locale
+        // (Windows defaults to cp1252, which mangles non-ASCII text).
+        PYTHONIOENCODING: 'utf-8',
+        PYTHONUTF8: '1',
       },
     });
 

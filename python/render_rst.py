@@ -205,6 +205,12 @@ def render_with_sphinx(source: str, source_path: Path, project_root: Path) -> di
 
 
 def main() -> int:
+    # The extension pipes the document in as UTF-8 and parses stdout as
+    # UTF-8 JSON. Never trust the locale default (cp1252 on Windows), which
+    # mangles em dashes, box-drawing characters, and other non-ASCII text.
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8")
+
     source_path = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 and sys.argv[1] else None
     source = sys.stdin.read()
 
