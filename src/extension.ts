@@ -20,6 +20,7 @@ let refreshTimer: NodeJS.Timeout | undefined;
 let themeCss = '';
 let renderInFlight = false;
 let renderQueued = false;
+let cachedPython: { setting: string; path: string } | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const scriptPath = context.asAbsolutePath(path.join('python', 'render_rst.py'));
@@ -103,7 +104,13 @@ export function activate(context: vscode.ExtensionContext): void {
     scheduleRefresh(scriptPath);
   });
 
-  context.subscriptions.push(openPreviewCommand, saveListener, editorListener, changeListener);
+  const configListener = vscode.workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration('rstPreview.pythonPath')) {
+      cachedPython = undefined;
+    }
+  });
+
+  context.subscriptions.push(openPreviewCommand, saveListener, editorListener, changeListener, configListener);
 }
 
 export function deactivate(): void {
@@ -150,6 +157,62 @@ function scheduleRefresh(scriptPath: string): void {
   }, 250);
 }
 
+function probePython(command: string): Promise<'ok' | 'no-docutils' | 'unusable'> {
+  return new Promise((resolve) => {
+    const child = spawn(command, ['-c', 'import docutils']);
+    let stderr = '';
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', () => resolve('unusable'));
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve('ok');
+      } else if (stderr.includes('ModuleNotFoundError') || stderr.includes('ImportError')) {
+        resolve('no-docutils');
+      } else {
+        // Covers missing executables and the Windows Store "python" alias
+        // stub, which exits non-zero with an install prompt.
+        resolve('unusable');
+      }
+    });
+  });
+}
+
+async function resolvePython(setting: string): Promise<string> {
+  if (cachedPython && cachedPython.setting === setting) {
+    return cachedPython.path;
+  }
+
+  // Try the configured interpreter first, then common fallbacks —
+  // "python3" does not exist on Windows, where "python" or the "py"
+  // launcher are the norm.
+  const candidates = [...new Set([setting, 'python3', 'python', 'py'])];
+  let pythonWithoutDocutils: string | undefined;
+
+  for (const candidate of candidates) {
+    const status = await probePython(candidate);
+    if (status === 'ok') {
+      cachedPython = { setting, path: candidate };
+      return candidate;
+    }
+    if (status === 'no-docutils' && !pythonWithoutDocutils) {
+      pythonWithoutDocutils = candidate;
+    }
+  }
+
+  if (pythonWithoutDocutils) {
+    throw new Error(
+      `Found Python ("${pythonWithoutDocutils}") but the docutils package is not installed.\n` +
+      `Install it with:\n\n    ${pythonWithoutDocutils} -m pip install docutils sphinx`,
+    );
+  }
+  throw new Error(
+    `No usable Python interpreter found (tried: ${candidates.join(', ')}).\n` +
+    'Install Python 3 with the docutils package, or point rstPreview.pythonPath at an interpreter that has it.',
+  );
+}
+
 async function refreshPreview(panel: vscode.WebviewPanel, scriptPath: string): Promise<void> {
   // Renders share a per-project build cache, so run one at a time; a refresh
   // requested mid-render coalesces into a single follow-up run.
@@ -164,11 +227,12 @@ async function refreshPreview(panel: vscode.WebviewPanel, scriptPath: string): P
   }
 
   const document = await vscode.workspace.openTextDocument(currentSourceUri);
-  const pythonPath = vscode.workspace.getConfiguration('rstPreview').get<string>('pythonPath', 'python3');
+  const configuredPython = vscode.workspace.getConfiguration('rstPreview').get<string>('pythonPath', 'python3');
   const source = document.getText();
 
   renderInFlight = true;
   try {
+    const pythonPath = await resolvePython(configuredPython);
     const result = await renderWithDocutils(pythonPath, scriptPath, source, document.uri.fsPath);
 
     const resourceRoots = [vscode.Uri.file(result.root || path.dirname(document.uri.fsPath))];

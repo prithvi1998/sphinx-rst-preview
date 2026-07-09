@@ -2,7 +2,7 @@
   "name": "rst-preview",
   "displayName": "RST Preview",
   "description": "Render reStructuredText files in a VS Code webview using docutils.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "local",
   "engines": {
     "vscode": "^1.85.0"
