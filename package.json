@@ -1,9 +1,15 @@
 {
   "name": "rst-preview",
-  "displayName": "RST Preview",
+  "displayName": "Sphinx RST Preview",
   "description": "Render reStructuredText files in a VS Code webview using docutils.",
   "version": "0.0.3",
-  "publisher": "local",
+  "publisher": "gamershabit",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prithvi1998/rst-preview.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -61,6 +67,7 @@
   "devDependencies": {
     "@types/node": "^22.13.4",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
     "typescript": "^5.8.3"
   }
 }
