@@ -2,7 +2,7 @@
   "name": "rst-preview",
   "displayName": "Sphinx RST Preview",
   "description": "Render reStructuredText files in a VS Code webview using docutils.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "gamershabit",
   "license": "MIT",
   "icon": "media/icon.png",

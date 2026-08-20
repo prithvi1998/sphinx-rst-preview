@@ -20,6 +20,14 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 STYLESHEET_LINK_RE = re.compile(r'(?i)<link[^>]+rel="stylesheet"[^>]*>')
 HREF_RE = re.compile(r'(?i)href="([^"]+)"')
 CSS_IMPORT_RE = re.compile(r'@import\s+url\(["\']?([^"\')]+)["\']?\)\s*;')
+SYSTEM_MESSAGE_RE = re.compile(r'(?is)<(div|aside)\b[^>]*\bclass="[^"]*\bsystem-message\b[^"]*"[^>]*>.*?</\1>\s*')
+
+
+def strip_system_messages(html: str) -> str:
+    """Docutils/Sphinx embed warning/error nodes inline in the document
+    regardless of report_level; the extension surfaces the same messages
+    through its own showWarnings-gated list, so drop the inline copies."""
+    return SYSTEM_MESSAGE_RE.sub("", html)
 
 
 def collect_theme_css(html: str, html_path: Path) -> str:
@@ -85,7 +93,8 @@ def render_with_docutils(source: str, source_path: Path | None) -> dict:
 
     warnings = clean_warnings(warning_stream.getvalue())
     base = str(source_path.parent) if source_path else ""
-    return {"html": parts.get("body", ""), "warnings": warnings, "mode": "docutils", "base": base, "root": base}
+    html = strip_system_messages(parts.get("body", ""))
+    return {"html": html, "warnings": warnings, "mode": "docutils", "base": base, "root": base}
 
 
 def sync_project(src_root: Path, dst_root: Path) -> None:
@@ -191,6 +200,7 @@ def render_with_sphinx(source: str, source_path: Path, project_root: Path) -> di
 
     body_match = BODY_RE.search(html)
     body = body_match.group(1).strip() if body_match else html
+    body = strip_system_messages(body)
     warnings = clean_warnings(warning_stream.getvalue())
     return {
         "html": body,
